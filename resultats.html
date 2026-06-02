@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Résultats – CDM 2026</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+    		<img src="assets/logo-asmodee.png" alt="Asmodee" style="height:32px; vertical-align:middle;">
+    		Pronos CDM 2026
+	    </div>
+            <div class="navbar-links">
+                <a href="index.html">Accueil</a>
+                <a href="pronostics.html">Mes Pronos</a>
+                <a href="pronos-jour.html">Pronos Scores</a>
+                <a href="resultats.html" class="active">Résultats</a>
+                <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
+            </div>
+	    <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Changer de thème">🌙</button>
+            <div class="navbar-user" id="navbar-user">
+                <span id="navbar-username"></span>
+                <button class="btn-logout" onclick="handleLogout()">Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="section">
+            <h2 class="section-title">📊 <span>Résultats et comparaisons</span></h2>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchView('matchs')">⚽ Matchs joués</button>
+                <button class="tab" onclick="switchView('france')">🇫🇷 Pronos France</button>
+                <button class="tab" onclick="switchView('general')">🌍 Pronos Général</button>
+            </div>
+
+            <!-- VUE MATCHS JOUÉS -->
+            <div class="tab-content active" id="view-matchs">
+                <div id="matchs-joues">
+                    <p class="text-gray">Chargement...</p>
+                </div>
+            </div>
+
+            <!-- VUE PRONOS FRANCE -->
+            <div class="tab-content" id="view-france">
+                <div class="card">
+                    <div class="card-title">🇫🇷 Comparaison des pronos France</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Participant</th>
+                                    <th>V/N/D</th>
+                                    <th>vs SEN</th>
+                                    <th>vs IRK</th>
+                                    <th>vs NOR</th>
+                                    <th>Élimination</th>
+                                    <th>Buteur FR</th>
+                                    <th>Buts</th>
+                                    <th>CS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="france-body">
+                                <tr><td colspan="9" class="text-center text-gray">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-16">
+                        <p class="text-gray">Résultats réels :</p>
+                        <div id="france-reels" class="text-gold mt-8">En attente...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VUE PRONOS GÉNÉRAL -->
+            <div class="tab-content" id="view-general">
+                <div class="card">
+                    <div class="card-title">🌍 Comparaison des pronos Généraux</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Joueur</th>
+                                    <th>Champion</th>
+                                    <th>Finaliste</th>
+                                    <th>Buteur</th>
+                                    <th>Gardien</th>
+                                    <th>MVP</th>
+                                    <th>Buts total</th>
+                                    <th>CSC</th>
+                                </tr>
+                            </thead>
+                            <tbody id="general-body">
+                                <tr><td colspan="8" class="text-center text-gray">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-16">
+                        <p class="text-gray">Résultats réels :</p>
+                        <div id="general-reels" class="text-gold mt-8">En attente...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        Pronos CDM 2026 – Service Supply – Asmodee Guyancourt 🇫🇷
+    </footer>
+
+    <script type="module">
+        import { supabase, getCurrentPlayer, logout, isAdmin } from './js/supabase-client.js';
+
+        window.handleLogout = () => logout();
+        window.switchView = switchView;
+
+        const player = getCurrentPlayer();
+        if (!player) { window.location.href = 'index.html'; }
+
+        document.getElementById('navbar-username').textContent = `Bonjour ${player.prenom} 👋`;
+        if (isAdmin()) document.getElementById('nav-admin').classList.remove('hidden');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMatchsJoues();
+            loadPronosFrance();
+            loadPronosGeneral();
+        });
+
+        function switchView(view) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${view}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // --- MATCHS JOUÉS ---
+        async function loadMatchsJoues() {
+            const { data: matches } = await supabase
+                .from('matches')
+                .select('*')
+                .eq('is_finished', true)
+                .order('date_match', { ascending: false });
+
+            const { data: mesPronos } = await supabase
+                .from('pronos_match')
+                .select('*')
+                .eq('player_id', player.id);
+
+            const pronosMap = {};
+            if (mesPronos) {
+                mesPronos.forEach(p => { pronosMap[p.match_id] = p; });
+            }
+
+            const container = document.getElementById('matchs-joues');
+
+            if (!matches || matches.length === 0) {
+                container.innerHTML = '<div class="card text-center text-gray">Aucun match terminé pour le moment</div>';
+                return;
+            }
+
+            container.innerHTML = matches.map(m => {
+                const date = new Date(m.date_match);
+                const dateStr = date.toLocaleDateString('fr-FR', {
+                    weekday: 'short', day: 'numeric', month: 'short'
+                });
+
+                const isFrance = m.equipe_a === 'France' || m.equipe_b === 'France';
+                const prono = pronosMap[m.id];
+
+                let pronoDisplay = '<span class="text-gray">Pas de prono</span>';
+                let pointsDisplay = '';
+
+                if (prono) {
+                    const psa = prono.prono_score_a;
+                    const psb = prono.prono_score_b;
+
+                    // Score exact ?
+                    if (psa === m.score_a && psb === m.score_b) {
+                        pronoDisplay = `<span class="text-green">${psa} – ${psb}</span>`;
+                        pointsDisplay = '<span class="badge badge-points">+5 pts</span>';
+                    }
+                    // Bon résultat ?
+                    else if (
+                        (psa > psb && m.score_a > m.score_b) ||
+                        (psa < psb && m.score_a < m.score_b) ||
+                        (psa === psb && m.score_a === m.score_b)
+                    ) {
+                        pronoDisplay = `<span class="text-gold">${psa} – ${psb}</span>`;
+                        pointsDisplay = '<span class="badge badge-points">+3 pts</span>';
+                    } else {
+                        pronoDisplay = `<span class="text-red">${psa} – ${psb}</span>`;
+                        pointsDisplay = '<span class="badge badge-loss">0 pt</span>';
+                    }
+                }
+
+                return `
+                    <div class="match-card ${isFrance ? 'is-france' : ''}">
+                        <div class="match-info">
+                            <span>${dateStr}</span>
+                            <span class="match-phase">${m.groupe ? 'Groupe ' + m.groupe : m.phase}</span>
+                        </div>
+                        <div class="match-teams">
+                            <span>${m.equipe_a}</span>
+                            <strong class="text-gold">${m.score_a} – ${m.score_b}</strong>
+                            <span>${m.equipe_b}</span>
+                        </div>
+                        <div class="match-result">
+                            Ton prono : ${pronoDisplay} ${pointsDisplay}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // --- PRONOS FRANCE ---
+        async function loadPronosFrance() {
+            const { data: pronos } = await supabase
+                .from('pronos_france')
+                .select('*, players(prenom, nom)')
+                .order('submitted_at');
+
+            const { data: reel } = await supabase
+                .from('resultats_reels')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            const tbody = document.getElementById('france-body');
+
+            if (!pronos || pronos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray">Aucun prono soumis</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = pronos.map(p => {
+                return `
+                    <tr>
+                        <td><strong>${p.players.prenom} ${p.players.nom}</strong></td>
+                        <td>${p.nb_victoires_poule}V ${p.nb_nuls_poule}N ${p.nb_defaites_poule}D</td>
+                        <td>${p.score_france_senegal_a}-${p.score_france_senegal_b}</td>
+                        <td>${p.score_france_irak_a}-${p.score_france_irak_b}</td>
+                        <td>${p.score_norvege_france_a}-${p.score_norvege_france_b}</td>
+                        <td>${p.stade_elimination}</td>
+                        <td>${p.meilleur_buteur_fr}</td>
+                        <td>${p.nb_buts_total_france}</td>
+                        <td>${p.nb_clean_sheets}</td>
+                    </tr>`;
+            }).join('');
+
+            // Résultats réels
+            const reelDiv = document.getElementById('france-reels');
+            if (reel && reel.stade_elimination_france) {
+                reelDiv.innerHTML = `
+                    Élimination : <strong>${reel.stade_elimination_france}</strong> |
+                    Buteur : <strong>${reel.meilleur_buteur_fr || '?'}</strong> |
+                    Buts : <strong>${reel.nb_buts_total_france ?? '?'}</strong> |
+                    CS : <strong>${reel.nb_clean_sheets_france ?? '?'}</strong>`;
+            }
+        }
+
+        // --- PRONOS GÉNÉRAL ---
+        async function loadPronosGeneral() {
+            const { data: pronos } = await supabase
+                .from('pronos_general')
+                .select('*, players(prenom, nom)')
+                .order('submitted_at');
+
+            const { data: reel } = await supabase
+                .from('resultats_reels')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            const tbody = document.getElementById('general-body');
+
+            if (!pronos || pronos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray">Aucun prono soumis</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = pronos.map(p => {
+                return `
+                    <tr>
+                        <td><strong>${p.players.prenom} ${p.players.nom}</strong></td>
+                        <td>${p.equipe_championne}</td>
+                        <td>${p.equipe_finaliste}</td>
+                        <td>${p.meilleur_buteur_tournoi}</td>
+                        <td>${p.meilleur_gardien}</td>
+                        <td>${p.meilleur_joueur}</td>
+                        <td>${p.nb_buts_total_tournoi}</td>
+                        <td>${p.nb_csc_tournoi}</td>
+                    </tr>`;
+            }).join('');
+
+            // Résultats réels
+            const reelDiv = document.getElementById('general-reels');
+            if (reel && reel.equipe_championne) {
+                reelDiv.innerHTML = `
+                    🏆 <strong>${reel.equipe_championne}</strong> |
+                    Finaliste : <strong>${reel.equipe_finaliste || '?'}</strong> |
+                    Buteur : <strong>${reel.meilleur_buteur_tournoi || '?'}</strong> |
+                    Buts total : <strong>${reel.nb_buts_total_tournoi ?? '?'}</strong>`;
+            }
+        }
+    </script>
+
+     <script>
+        // --- Toggle Thème ---
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            const btn = document.getElementById('btn-theme');
+            if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+        }
+
+        // Charger le thème sauvegardé
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light') {
+                document.body.classList.add('light');
+                const btn = document.getElementById('btn-theme');
+                if (btn) btn.textContent = '☀️';
+            }
+        })();
+    </script>
+
+</body>
+</html>

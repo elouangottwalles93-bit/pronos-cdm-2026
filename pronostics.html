@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔮 Grand Prono – CDM 2026</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+    		<img src="assets/logo-asmodee.png" alt="Asmodee" style="height:32px; vertical-align:middle;">
+    		Pronos CDM 2026
+	    </div>
+            <div class="navbar-links">
+                <a href="index.html">Accueil</a>
+                <a href="pronostics.html" class="active">Mes pronos</a>
+                <a href="pronos-jour.html">Prono scores</a>
+                <a href="resultats.html">Résultats</a>
+                <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
+            </div>
+	    <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Changer de thème">🌙</button>
+            <div class="navbar-user" id="navbar-user">
+                <span id="navbar-username"></span>
+                <button class="btn-logout" id="btn-logout" onclick="handleLogout()">Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="section">
+            <h2 class="section-title">🔮 <span>C'est l'heure de faire vos pronos !</span></h2>
+            <p class="text-gray mb-24">Remplis tes pronostics avant le 11 juin 2026 – une seule chance, pas de modification possible !</p>
+
+            <div id="already-submitted" class="alert alert-info hidden">
+                ✅ Tu as déjà soumis tes pronostics ! Ils sont verrouillés.
+            </div>
+
+            <div id="msg" class="hidden"></div>
+
+            <form id="grand-prono-form">
+
+                <!-- ====== PARCOURS FRANCE ====== -->
+                <div class="card">
+                    <div class="card-title">Parcours de l'Équipe de France</div>
+
+                    <!-- V/N/D -->
+                    <p class="text-gray mb-16">Résultats en phase de poules (V + N + D = 3)</p>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label>Victoires</label>
+                            <select id="nb_victoires" required>
+                                <option value="">--</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nuls</label>
+                            <select id="nb_nuls" required>
+                                <option value="">--</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Défaites</label>
+                            <select id="nb_defaites" required>
+                                <option value="">--</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Scores exacts poules -->
+                    <p class="text-gray mb-16 mt-24">Scores exacts des matchs de poule</p>
+
+                    <div class="form-group">
+                        <label>France vs Sénégal – 16 juin 21h</label>
+                        <div class="score-input-group">
+                            <span class="team-name left">France</span>
+                            <input type="number" id="fr_sen_a" min="0" max="20" required>
+                            <span class="vs">–</span>
+                            <input type="number" id="fr_sen_b" min="0" max="20" required>
+                            <span class="team-name right">Sénégal</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>France vs Irak – 22 juin 00h</label>
+                        <div class="score-input-group">
+                            <span class="team-name left">France</span>
+                            <input type="number" id="fr_irk_a" min="0" max="20" required>
+                            <span class="vs">–</span>
+                            <input type="number" id="fr_irk_b" min="0" max="20" required>
+                            <span class="team-name right">Irak</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Norvège vs France – 26 juin 21h</label>
+                        <div class="score-input-group">
+                            <span class="team-name left">Norvège</span>
+                            <input type="number" id="nor_fr_a" min="0" max="20" required>
+                            <span class="vs">–</span>
+                            <input type="number" id="nor_fr_b" min="0" max="20" required>
+                            <span class="team-name right">France</span>
+                        </div>
+                    </div>
+
+                    <!-- Pronos globaux France -->
+                    <p class="text-gray mb-16 mt-24">Pronostics globaux</p>
+
+                    <div class="form-group">
+                        <label>Stade d'élimination de la France</label>
+                        <select id="stade_elim" required>
+                            <option value="">-- Choisis --</option>
+                            <option value="poules">Éliminée en poules</option>
+                            <option value="32e">32èmes de finale</option>
+                            <option value="16e">16èmes de finale</option>
+                            <option value="quart">Quarts de finale</option>
+                            <option value="demi">Demi-finales</option>
+                            <option value="finale">Finale (perdant)</option>
+                            <option value="champion">🏆 Championne du monde !</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Meilleur buteur français</label>
+                            <input type="text" id="buteur_fr" placeholder="Ex: Mbappé" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Auteur du plus beau but 🇫🇷</label>
+                            <input type="text" id="beau_but_fr" placeholder="Ex: Griezmann" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nb total de buts marqués par la France</label>
+                            <input type="number" id="buts_total_fr" min="0" max="50" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nb de clean sheets (0 but encaissé)</label>
+                            <input type="number" id="clean_sheets" min="0" max="8" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🤪 Joueur français avec le plus de cartons</label>
+                        <input type="text" id="cartons_fr" placeholder="Ex: Tchouaméni" required>
+                    </div>
+                </div>
+
+                <!-- ====== PARCOURS GÉNÉRAL ====== -->
+                <div class="card">
+                    <div class="card-title">🌍 Compétition Générale</div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Équipe championne du monde 🏆</label>
+                            <input type="text" id="champion" placeholder="Ex: France" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Équipe finaliste (perdant)</label>
+                            <input type="text" id="finaliste" placeholder="Ex: Brésil" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Meilleur buteur du tournoi</label>
+                            <input type="text" id="buteur_tournoi" placeholder="Ex: Haaland" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Meilleur gardien du tournoi</label>
+                            <input type="text" id="gardien" placeholder="Ex: Courtois" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Meilleur joueur du tournoi</label>
+                            <input type="text" id="meilleur_joueur" placeholder="Ex: Messi" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nb total de buts dans le tournoi</label>
+                            <input type="number" id="buts_tournoi" min="0" max="500" required>
+                        </div>
+                    </div>
+
+                    <p class="text-gray mb-16 mt-24">🤪 Pronos CRAZYYYY</p>
+
+                    <div class="form-group">
+                        <label>Match avec le plus de buts (équipes + score)</label>
+                        <div class="score-input-group">
+                            <input type="text" id="wtf_equipe_a" placeholder="Équipe A" style="width:120px" required>
+                            <input type="number" id="wtf_score_a" min="0" max="20" style="width:60px" required>
+                            <span class="vs">–</span>
+                            <input type="number" id="wtf_score_b" min="0" max="20" style="width:60px" required>
+                            <input type="text" id="wtf_equipe_b" placeholder="Équipe B" style="width:120px" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nombre de CSC (contre-son-camp) dans tout le tournoi</label>
+                        <input type="number" id="nb_csc" min="0" max="50" required>
+                    </div>
+                </div>
+
+                <!-- Score finale (séparé, deadline différente) -->
+                <div class="card" id="card-finale">
+                    <div class="card-title">🏟️ Score exact de la finale</div>
+                    <p class="text-gray mb-16">Ce prono peut être saisi jusqu'au 19 juillet (avant le coup d'envoi de la finale)</p>
+                    <div class="score-input-group">
+                        <span class="team-name left" id="finale-team-a">Équipe A</span>
+                        <input type="number" id="finale_score_a" min="0" max="20">
+                        <span class="vs">–</span>
+                        <input type="number" id="finale_score_b" min="0" max="20">
+                        <span class="team-name right" id="finale-team-b">Équipe B</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="btn-submit">
+                    🔒 Valider mes pronostics
+                </button>
+
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer">
+        Pronos CDM 2026 – Service Supply – Asmodee Guyancourt 🇫🇷
+    </footer>
+
+    <script type="module">
+        import { supabase, getCurrentPlayer, logout, isAdmin } from './js/supabase-client.js';
+
+        window.handleLogout = () => logout();
+
+        const player = getCurrentPlayer();
+        if (!player) { window.location.href = 'index.html'; }
+
+        document.getElementById('navbar-username').textContent = `Bonjour ${player.prenom} 👋`;
+        if (isAdmin()) document.getElementById('nav-admin').classList.remove('hidden');
+
+         // Vérifier si déjà soumis
+        async function checkExisting() {
+            const { data: frData } = await supabase
+                .from('pronos_france')
+                .select('id')
+                .eq('player_id', player.id)
+                .maybeSingle();
+
+            const { data: genData } = await supabase
+                .from('pronos_general')
+                .select('id')
+                .eq('player_id', player.id)
+                .maybeSingle();
+
+            if (frData && genData) {
+                document.getElementById('already-submitted').classList.remove('hidden');
+                document.getElementById('grand-prono-form').style.display = 'none';
+            }
+        }
+
+        checkExisting();
+
+        // Soumission du formulaire
+        document.getElementById('grand-prono-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const msgDiv = document.getElementById('msg');
+            msgDiv.className = 'hidden';
+
+            // Vérifier deadline (11 juin 2026 21h Paris)
+            const deadline = new Date('2026-06-11T21:00:00+02:00');
+            if (new Date() > deadline) {
+                msgDiv.className = 'alert alert-error';
+                msgDiv.textContent = '⏰ Trop tard ! La deadline est passée.';
+                return;
+            }
+
+            // Vérifier V + N + D = 3
+            const v = parseInt(document.getElementById('nb_victoires').value);
+            const n = parseInt(document.getElementById('nb_nuls').value);
+            const d = parseInt(document.getElementById('nb_defaites').value);
+
+            if (v + n + d !== 3) {
+                msgDiv.className = 'alert alert-error';
+                msgDiv.textContent = '❌ Victoires + Nuls + Défaites doit être égal à 3 !';
+                return;
+            }
+
+            // Désactiver le bouton
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.textContent = '⏳ Envoi en cours...';
+
+            // INSERT pronos_france
+            const { error: errFr } = await supabase
+                .from('pronos_france')
+                .insert({
+                    player_id: player.id,
+                    nb_victoires_poule: v,
+                    nb_nuls_poule: n,
+                    nb_defaites_poule: d,
+                    score_france_senegal_a: parseInt(document.getElementById('fr_sen_a').value),
+                    score_france_senegal_b: parseInt(document.getElementById('fr_sen_b').value),
+                    score_france_irak_a: parseInt(document.getElementById('fr_irk_a').value),
+                    score_france_irak_b: parseInt(document.getElementById('fr_irk_b').value),
+                    score_norvege_france_a: parseInt(document.getElementById('nor_fr_a').value),
+                    score_norvege_france_b: parseInt(document.getElementById('nor_fr_b').value),
+                    stade_elimination: document.getElementById('stade_elim').value,
+                    meilleur_buteur_fr: document.getElementById('buteur_fr').value.trim(),
+                    nb_buts_total_france: parseInt(document.getElementById('buts_total_fr').value),
+                    nb_clean_sheets: parseInt(document.getElementById('clean_sheets').value),
+                    auteur_plus_beau_but: document.getElementById('beau_but_fr').value.trim(),
+                    joueur_plus_cartons: document.getElementById('cartons_fr').value.trim()
+                });
+
+            if (errFr) {
+                msgDiv.className = 'alert alert-error';
+                msgDiv.textContent = '❌ Erreur France : ' + errFr.message;
+                btn.disabled = false;
+                btn.textContent = '🔒 Valider mes pronostics';
+                return;
+            }
+
+            // INSERT pronos_general
+            const finaleA = document.getElementById('finale_score_a').value;
+            const finaleB = document.getElementById('finale_score_b').value;
+
+            const generalData = {
+                player_id: player.id,
+                equipe_championne: document.getElementById('champion').value.trim(),
+                equipe_finaliste: document.getElementById('finaliste').value.trim(),
+                meilleur_buteur_tournoi: document.getElementById('buteur_tournoi').value.trim(),
+                meilleur_gardien: document.getElementById('gardien').value.trim(),
+                meilleur_joueur: document.getElementById('meilleur_joueur').value.trim(),
+                nb_buts_total_tournoi: parseInt(document.getElementById('buts_tournoi').value),
+                match_plus_buts_equipe_a: document.getElementById('wtf_equipe_a').value.trim(),
+                match_plus_buts_equipe_b: document.getElementById('wtf_equipe_b').value.trim(),
+                match_plus_buts_score_a: parseInt(document.getElementById('wtf_score_a').value),
+                match_plus_buts_score_b: parseInt(document.getElementById('wtf_score_b').value),
+                nb_csc_tournoi: parseInt(document.getElementById('nb_csc').value)
+            };
+
+            // Score finale optionnel (deadline différente)
+            if (finaleA !== '' && finaleB !== '') {
+                generalData.score_finale_a = parseInt(finaleA);
+                generalData.score_finale_b = parseInt(finaleB);
+                generalData.score_finale_submitted_at = new Date().toISOString();
+            }
+
+            const { error: errGen } = await supabase
+                .from('pronos_general')
+                .insert(generalData);
+
+            if (errGen) {
+                msgDiv.className = 'alert alert-error';
+                msgDiv.textContent = '❌ Erreur Général : ' + errGen.message;
+                btn.disabled = false;
+                btn.textContent = '🔒 Valider mes pronostics';
+                return;
+            }
+
+            // Succès
+            msgDiv.className = 'alert alert-success';
+            msgDiv.textContent = '🎉 Pronostics enregistrés avec succès ! Bonne chance !';
+            document.getElementById('grand-prono-form').style.display = 'none';
+        });
+    </script>
+    
+     <script>
+        // --- Toggle Thème ---
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            const btn = document.getElementById('btn-theme');
+            if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+        }
+
+        // Charger le thème sauvegardé
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light') {
+                document.body.classList.add('light');
+                const btn = document.getElementById('btn-theme');
+                if (btn) btn.textContent = '☀️';
+            }
+        })();
+    </script>
+</body>
+</html>

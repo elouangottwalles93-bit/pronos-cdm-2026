@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛠️ Admin – CDM 2026</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+    		<img src="assets/logo-asmodee.png" alt="Asmodee" style="height:32px; vertical-align:middle;">
+    		Pronos CDM 2026
+	    </div>
+            <div class="navbar-links">
+                <a href="index.html">Accueil</a>
+                <a href="pronostics.html">Grand Prono</a>
+                <a href="pronos-jour.html">Pronos du Jour</a>
+                <a href="resultats.html">Résultats</a>
+                <a href="admin.html" class="active">Admin</a>
+            </div>
+	    <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Changer de thème">🌙</button>
+            <div class="navbar-user">
+                <span id="navbar-username"></span>
+                <button class="btn-logout" onclick="handleLogout()">Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="section">
+            <h2 class="section-title">🛠️ <span>Administration</span></h2>
+
+            <div id="access-denied" class="alert alert-error hidden">
+                🚫 Accès réservé aux administrateurs.
+            </div>
+
+            <div id="admin-content" class="hidden">
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchAdmin('scores')">⚽ Scores des matchs</button>
+                    <button class="tab" onclick="switchAdmin('resultats')">📋 Résultats réels</button>
+                    <button class="tab" onclick="switchAdmin('joueurs')">👥 Joueurs</button>
+                    <button class="tab" onclick="switchAdmin('knockout')">🏟️ Matchs à élimination</button>
+                </div>
+
+                <div id="admin-msg" class="hidden"></div>
+
+                <!-- ====== ONGLET SCORES ====== -->
+                <div class="tab-content active" id="admin-scores">
+                    <div class="card">
+                        <div class="card-title">⚽ Saisie des scores des matchs terminés</div>
+                        <p class="text-gray mb-16">Sélectionne un match, saisis le score, et valide. Le classement sera recalculé automatiquement.</p>
+                        <div id="admin-matches-list">
+                            <p class="text-gray">Chargement...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== ONGLET RÉSULTATS RÉELS ====== -->
+                <div class="tab-content" id="admin-resultats">
+                    <div class="card">
+                        <div class="card-title">🇫🇷 Résultats France</div>
+
+                        <div class="form-group">
+                            <label>Stade d'élimination de la France</label>
+                            <select id="r-stade-elim">
+                                <option value="">-- Non défini --</option>
+                                <option value="poules">Éliminée en poules</option>
+                                <option value="32e">32èmes</option>
+                                <option value="16e">16èmes</option>
+                                <option value="quart">Quarts</option>
+                                <option value="demi">Demi-finales</option>
+                                <option value="finale">Finale (perdant)</option>
+                                <option value="champion">🏆 Championne</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Meilleur buteur FR</label>
+                                <input type="text" id="r-buteur-fr" placeholder="Ex: Mbappé">
+                            </div>
+                            <div class="form-group">
+                                <label>Auteur plus beau but FR</label>
+                                <input type="text" id="r-beau-but-fr" placeholder="Ex: Griezmann">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nb buts total France</label>
+                                <input type="number" id="r-buts-fr" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Nb clean sheets France</label>
+                                <input type="number" id="r-cs-fr" min="0">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Joueur FR avec le plus de cartons</label>
+                            <input type="text" id="r-cartons-fr" placeholder="Ex: Tchouaméni">
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🌍 Résultats Généraux</div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Équipe championne</label>
+                                <input type="text" id="r-champion" placeholder="Ex: France">
+                            </div>
+                            <div class="form-group">
+                                <label>Équipe finaliste</label>
+                                <input type="text" id="r-finaliste" placeholder="Ex: Brésil">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Score exact de la finale</label>
+                            <div class="score-input-group">
+                                <input type="number" id="r-finale-a" min="0" style="width:60px">
+                                <span class="vs">–</span>
+                                <input type="number" id="r-finale-b" min="0" style="width:60px">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Meilleur buteur tournoi</label>
+                                <input type="text" id="r-buteur-tournoi">
+                            </div>
+                            <div class="form-group">
+                                <label>Meilleur gardien</label>
+                                <input type="text" id="r-gardien">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Meilleur joueur</label>
+                            <input type="text" id="r-mvp">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nb buts total tournoi</label>
+                            <input type="number" id="r-buts-tournoi" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Match avec le plus de buts</label>
+                            <div class="score-input-group">
+                                <input type="text" id="r-wtf-eq-a" placeholder="Équipe A" style="width:120px">
+                                <input type="number" id="r-wtf-sc-a" min="0" style="width:60px">
+                                <span class="vs">–</span>
+                                <input type="number" id="r-wtf-sc-b" min="0" style="width:60px">
+                                <input type="text" id="r-wtf-eq-b" placeholder="Équipe B" style="width:120px">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nb de CSC dans le tournoi</label>
+                            <input type="number" id="r-csc" min="0">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-block" onclick="saveResultats()">
+                        💾 Sauvegarder les résultats réels
+                    </button>
+                </div>
+
+                <!-- ====== ONGLET JOUEURS ====== -->
+                <div class="tab-content" id="admin-joueurs">
+                    <div class="card">
+                        <div class="card-title">👥 Ajouter un participant</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Prénom</label>
+                                <input type="text" id="new-prenom">
+                            </div>
+                            <div class="form-group">
+                                <label>Nom</label>
+                                <input type="text" id="new-nom">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="new-email">
+                        </div>
+                        <button class="btn btn-primary mt-16" onclick="addPlayer()">➕ Ajouter</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">📋 Liste des participants</div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Prénom</th>
+                                        <th>Nom</th>
+                                        <th>Email</th>
+                                        <th>Code</th>
+                                        <th>Admin</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="players-body">
+                                    <tr><td colspan="5" class="text-center text-gray">Chargement...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== ONGLET MATCHS À ÉLIMINATION ====== -->
+                <div class="tab-content" id="admin-knockout">
+                    <div class="card">
+                        <div class="card-title">🏟️ Ajouter un match (phases finales)</div>
+                        <div class="form-group">
+                            <label>Phase</label>
+                            <select id="ko-phase">
+                                <option value="32e">32èmes de finale</option>
+                                <option value="16e">16èmes de finale</option>
+                                <option value="quart">Quarts de finale</option>
+                                <option value="demi">Demi-finales</option>
+                                <option value="petite_finale">Petite finale</option>
+                                <option value="finale">Finale</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Équipe A</label>
+                                <input type="text" id="ko-eq-a" placeholder="Ex: France">
+                            </div>
+                            <div class="form-group">
+                                <label>Équipe B</label>
+                                <input type="text" id="ko-eq-b" placeholder="Ex: Brésil">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Date et heure (Paris)</label>
+                                <input type="datetime-local" id="ko-date">
+                            </div>
+                            <div class="form-group">
+                                <label>Lieu</label>
+                                <input type="text" id="ko-lieu" placeholder="Ex: MetLife Stadium">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-16" onclick="addKnockoutMatch()">➕ Ajouter le match</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        Pronos CDM 2026 – Service Supply – Asmodee Guyancourt 🇫🇷
+    </footer>
+
+    <script type="module">
+        import { supabase, getCurrentPlayer, logout, isAdmin } from './js/supabase-client.js';
+
+        window.handleLogout = () => logout();
+        window.switchAdmin = switchAdmin;
+        window.saveMatchScore = saveMatchScore;
+        window.saveResultats = saveResultats;
+        window.addPlayer = addPlayer;
+        window.addKnockoutMatch = addKnockoutMatch;
+
+        const player = getCurrentPlayer();
+        if (!player) { window.location.href = 'index.html'; }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const usernameEl = document.getElementById('navbar-username');
+            if (usernameEl) usernameEl.textContent = `Bonjour ${player.prenom} 👋`;
+
+            const navAdmin = document.getElementById('nav-admin');
+
+            if (!isAdmin()) {
+                const denied = document.getElementById('access-denied');
+                if (denied) denied.classList.remove('hidden');
+            } else {
+                const content = document.getElementById('admin-content');
+                if (content) content.classList.remove('hidden');
+                if (navAdmin) navAdmin.classList.remove('hidden');
+                loadAdminMatches();
+                loadResultats();
+                loadPlayers();
+            }
+        });
+
+
+        function switchAdmin(tab) {
+            document.querySelectorAll('#admin-content .tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#admin-content .tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(`admin-${tab}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showMsg(text, type) {
+            const el = document.getElementById('admin-msg');
+            el.className = `alert alert-${type}`;
+            el.textContent = text;
+            setTimeout(() => { el.className = 'hidden'; }, 4000);
+        }
+
+        // ====== SCORES DES MATCHS ======
+        async function loadAdminMatches() {
+            const { data } = await supabase
+                .from('matches')
+                .select('*')
+                .eq('is_finished', false)
+                .order('date_match', { ascending: true });
+
+            const container = document.getElementById('admin-matches-list');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p class="text-gray">Tous les matchs sont terminés !</p>';
+                return;
+            }
+
+            container.innerHTML = data.map(m => {
+                const date = new Date(m.date_match);
+                const dateStr = date.toLocaleDateString('fr-FR', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+                const isPast = new Date() > date;
+
+                if (!isPast) {
+                    return `
+                        <div class="match-card">
+                            <div class="match-info">
+                                <span>${dateStr}</span>
+                                <span class="match-phase">${m.groupe ? 'Groupe ' + m.groupe : m.phase}</span>
+                            </div>
+                            <div class="match-teams">
+                                ${m.equipe_a} vs ${m.equipe_b}
+                            </div>
+                            <p class="text-gray text-center mt-8">Match pas encore commencé</p>
+                        </div>`;
+                }
+
+                return `
+                    <div class="match-card">
+                        <div class="match-info">
+                            <span>${dateStr}</span>
+                            <span class="match-phase">${m.phase}</span>
+                        </div>
+                        <div class="match-teams">
+                            ${m.equipe_a} vs ${m.equipe_b}
+                        </div>
+                        <div class="score-input-group mt-16">
+                            <span class="team-name left">${m.equipe_a}</span>
+                            <input type="number" id="adm-sa-${m.id}" min="0" style="width:60px;text-align:center;font-size:1.3rem">
+                            <span class="vs">–</span>
+                            <input type="number" id="adm-sb-${m.id}" min="0" style="width:60px;text-align:center;font-size:1.3rem">
+                            <span class="team-name right">${m.equipe_b}</span>
+                        </div>
+                        <div class="text-center mt-8">
+                            <button class="btn btn-primary" onclick="saveMatchScore(${m.id})">
+                                ✅ Valider le score
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+	async function saveMatchScore(matchId) {
+            const sa = document.getElementById(`adm-sa-${matchId}`).value;
+            const sb = document.getElementById(`adm-sb-${matchId}`).value;
+
+            if (sa === '' || sb === '') {
+                showMsg('❌ Remplis les deux scores !', 'error');
+                return;
+            }
+
+            const { error } = await supabase
+                .from('matches')
+                .update({
+                    score_a: parseInt(sa),
+                    score_b: parseInt(sb),
+                    is_finished: true
+                })
+                .eq('id', matchId);
+
+            if (error) {
+                showMsg('❌ Erreur : ' + error.message, 'error');
+                return;
+            }
+
+            // Rafraîchir le classement
+            await supabase.rpc('refresh_classement');
+
+            showMsg('✅ Score enregistré et classement mis à jour !', 'success');
+            loadAdminMatches();
+        }
+
+        // ====== RÉSULTATS RÉELS ======
+        async function loadResultats() {
+            const { data } = await supabase
+                .from('resultats_reels')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (!data) return;
+
+            // France
+            if (data.stade_elimination_france) document.getElementById('r-stade-elim').value = data.stade_elimination_france;
+            if (data.meilleur_buteur_fr) document.getElementById('r-buteur-fr').value = data.meilleur_buteur_fr;
+            if (data.auteur_plus_beau_but_fr) document.getElementById('r-beau-but-fr').value = data.auteur_plus_beau_but_fr;
+            if (data.nb_buts_total_france != null) document.getElementById('r-buts-fr').value = data.nb_buts_total_france;
+            if (data.nb_clean_sheets_france != null) document.getElementById('r-cs-fr').value = data.nb_clean_sheets_france;
+            if (data.joueur_plus_cartons_fr) document.getElementById('r-cartons-fr').value = data.joueur_plus_cartons_fr;
+
+            // Général
+            if (data.equipe_championne) document.getElementById('r-champion').value = data.equipe_championne;
+            if (data.equipe_finaliste) document.getElementById('r-finaliste').value = data.equipe_finaliste;
+            if (data.score_finale_a != null) document.getElementById('r-finale-a').value = data.score_finale_a;
+            if (data.score_finale_b != null) document.getElementById('r-finale-b').value = data.score_finale_b;
+            if (data.meilleur_buteur_tournoi) document.getElementById('r-buteur-tournoi').value = data.meilleur_buteur_tournoi;
+            if (data.meilleur_gardien) document.getElementById('r-gardien').value = data.meilleur_gardien;
+            if (data.meilleur_joueur) document.getElementById('r-mvp').value = data.meilleur_joueur;
+            if (data.nb_buts_total_tournoi != null) document.getElementById('r-buts-tournoi').value = data.nb_buts_total_tournoi;
+            if (data.match_plus_buts_equipe_a) document.getElementById('r-wtf-eq-a').value = data.match_plus_buts_equipe_a;
+            if (data.match_plus_buts_equipe_b) document.getElementById('r-wtf-eq-b').value = data.match_plus_buts_equipe_b;
+            if (data.match_plus_buts_score_a != null) document.getElementById('r-wtf-sc-a').value = data.match_plus_buts_score_a;
+            if (data.match_plus_buts_score_b != null) document.getElementById('r-wtf-sc-b').value = data.match_plus_buts_score_b;
+            if (data.nb_csc_tournoi != null) document.getElementById('r-csc').value = data.nb_csc_tournoi;
+        }
+
+        async function saveResultats() {
+            const getValue = (id) => {
+                const el = document.getElementById(id);
+                return el.value.trim() || null;
+            };
+            const getInt = (id) => {
+                const el = document.getElementById(id);
+                return el.value !== '' ? parseInt(el.value) : null;
+            };
+
+            const updateData = {
+                stade_elimination_france: getValue('r-stade-elim'),
+                meilleur_buteur_fr: getValue('r-buteur-fr'),
+                auteur_plus_beau_but_fr: getValue('r-beau-but-fr'),
+                nb_buts_total_france: getInt('r-buts-fr'),
+                nb_clean_sheets_france: getInt('r-cs-fr'),
+                joueur_plus_cartons_fr: getValue('r-cartons-fr'),
+                equipe_championne: getValue('r-champion'),
+                equipe_finaliste: getValue('r-finaliste'),
+                score_finale_a: getInt('r-finale-a'),
+                score_finale_b: getInt('r-finale-b'),
+                meilleur_buteur_tournoi: getValue('r-buteur-tournoi'),
+                meilleur_gardien: getValue('r-gardien'),
+                meilleur_joueur: getValue('r-mvp'),
+                nb_buts_total_tournoi: getInt('r-buts-tournoi'),
+                match_plus_buts_equipe_a: getValue('r-wtf-eq-a'),
+                match_plus_buts_equipe_b: getValue('r-wtf-eq-b'),
+                match_plus_buts_score_a: getInt('r-wtf-sc-a'),
+                match_plus_buts_score_b: getInt('r-wtf-sc-b'),
+                nb_csc_tournoi: getInt('r-csc'),
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await supabase
+                .from('resultats_reels')
+                .update(updateData)
+                .eq('id', 1);
+
+            if (error) {
+                showMsg('❌ Erreur : ' + error.message, 'error');
+                return;
+            }
+
+            // Rafraîchir le classement
+            await supabase.rpc('refresh_classement');
+
+            showMsg('✅ Résultats réels sauvegardés et classement recalculé !', 'success');
+        }
+
+        // ====== GESTION DES JOUEURS ======
+        async function loadPlayers() {
+            const { data } = await supabase
+                .from('players')
+                .select('*')
+                .order('prenom');
+
+            const tbody = document.getElementById('players-body');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">Aucun joueur</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(p => {
+                return `
+                    <tr>
+                        <td>${p.prenom}</td>
+                        <td>${p.nom}</td>
+                        <td>${p.email}</td>
+                        <td><code style="color:var(--gold)">${p.code_unique}</code></td>
+                        <td>${p.is_admin ? '✅' : ''}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        function generateCode(prenom) {
+            const prefix = prenom.toUpperCase().substring(0, 4);
+            const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+            return `${prefix}-${suffix}`;
+        }
+
+        async function addPlayer() {
+            const prenom = document.getElementById('new-prenom').value.trim();
+            const nom = document.getElementById('new-nom').value.trim();
+            const email = document.getElementById('new-email').value.trim();
+
+            if (!prenom || !nom || !email) {
+                showMsg('❌ Remplis tous les champs !', 'error');
+                return;
+            }
+
+            const code = generateCode(prenom);
+
+            const { error } = await supabase
+                .from('players')
+                .insert({
+                    prenom: prenom,
+                    nom: nom,
+                    email: email,
+                    code_unique: code,
+                    is_admin: false
+                });
+
+            if (error) {
+                showMsg('❌ Erreur : ' + error.message, 'error');
+                return;
+            }
+
+            showMsg(`✅ ${prenom} ${nom} ajouté ! Code : ${code}`, 'success');
+            document.getElementById('new-prenom').value = '';
+            document.getElementById('new-nom').value = '';
+            document.getElementById('new-email').value = '';
+            loadPlayers();
+        }
+
+        // ====== MATCHS À ÉLIMINATION ======
+        async function addKnockoutMatch() {
+            const phase = document.getElementById('ko-phase').value;
+            const eqA = document.getElementById('ko-eq-a').value.trim();
+            const eqB = document.getElementById('ko-eq-b').value.trim();
+            const dateVal = document.getElementById('ko-date').value;
+            const lieu = document.getElementById('ko-lieu').value.trim();
+
+            if (!eqA || !eqB || !dateVal) {
+                showMsg('❌ Remplis au moins les équipes et la date !', 'error');
+                return;
+            }
+
+            // Convertir datetime-local en ISO avec fuseau Paris
+            const dateMatch = new Date(dateVal).toISOString();
+
+            const { error } = await supabase
+                .from('matches')
+                .insert({
+                    phase: phase,
+                    equipe_a: eqA,
+                    equipe_b: eqB,
+                    date_match: dateMatch,
+                    lieu: lieu || null
+                });
+
+            if (error) {
+                showMsg('❌ Erreur : ' + error.message, 'error');
+                return;
+            }
+
+            showMsg(`✅ Match ajouté : ${eqA} vs ${eqB} (${phase})`, 'success');
+            document.getElementById('ko-eq-a').value = '';
+            document.getElementById('ko-eq-b').value = '';
+            document.getElementById('ko-date').value = '';
+            document.getElementById('ko-lieu').value = '';
+        }
+    </script>
+
+     <script>
+        // --- Toggle Thème ---
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            const btn = document.getElementById('btn-theme');
+            if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+        }
+
+        // Charger le thème sauvegardé
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light') {
+                document.body.classList.add('light');
+                const btn = document.getElementById('btn-theme');
+                if (btn) btn.textContent = '☀️';
+            }
+        })();
+    </script>
+
+</body>
+</html

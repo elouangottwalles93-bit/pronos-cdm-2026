@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ Pronos CDM 2026 – Supply Asmodee</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ====== NAVBAR ====== -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+    		<img src="assets/logo-asmodee.png" alt="Asmodee" style="height:32px; vertical-align:middle;">
+    		Pronos CDM 2026
+	    </div>
+            <div class="navbar-links">
+                <a href="index.html" class="active">Accueil</a>
+                <a href="pronostics.html">Mes pronos</a>
+                <a href="pronos-jour.html">Prono scores</a>
+                <a href="resultats.html">Résultats</a>
+                <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
+            </div>
+	    <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Changer de thème">🌙</button>
+            <div class="navbar-user" id="navbar-user">
+                <span id="navbar-username"></span>
+                <button class="btn-logout" id="btn-logout" onclick="handleLogout()">Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ====== LOGIN OVERLAY ====== -->
+    <div class="login-overlay" id="login-overlay">
+        <div class="login-box">
+            <h2>⚽ Pronos CDM 2026</h2>
+
+            <!-- Onglets Connexion / Inscription -->
+            <div class="tabs" style="justify-content:center; margin-bottom:20px; border:none;">
+                <button class="tab active" onclick="switchLoginTab('login')">Connexion</button>
+                <button class="tab" onclick="switchLoginTab('register')">Inscription</button>
+            </div>
+
+            <!-- CONNEXION -->
+            <div id="login-form">
+                <p class="text-gray" style="margin-bottom:16px;">Entre ton code personnel</p>
+                <div class="form-group">
+                    <input type="text" id="login-code" placeholder="Ex: ELOU-A7X2"
+                           style="text-align:center; text-transform:uppercase; font-size:1.2rem;">
+                </div>
+                <div id="login-error" class="alert alert-error hidden"></div>
+                <button class="btn btn-primary btn-block" onclick="handleLogin()">Entrer</button>
+            </div>
+
+            <!-- INSCRIPTION -->
+            <div id="register-form" class="hidden">
+                <p class="text-gray" style="margin-bottom:16px;">Crée ton compte pour participer</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prénom</label>
+                        <input type="text" id="reg-prenom" placeholder="Ex: Flore">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="reg-nom" placeholder="Ex: Belbis">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Code secret (celui-ci te servira pour te connecter)</label>
+                    <input type="text" id="reg-code" placeholder="Ex: ALLEZLESBLEUS"
+                           style="text-transform:uppercase; text-align:center; font-size:1.1rem; font-weight:700; letter-spacing:2px;">
+                </div>
+                <div id="register-error" class="alert alert-error hidden"></div>
+                <div id="register-success" class="alert alert-success hidden"></div>
+                <button class="btn btn-primary btn-block" onclick="handleRegister()">Créer mon compte</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+
+	<!-- Présentation -->
+        <div class="section text-center">
+            <h1 style="font-size:2.2rem; font-weight:800; margin-bottom:8px;">
+                QUI VEUT GAGNER DES PRONOS ?
+            </h1>
+            <p class="text-gold" style="font-size:1.1rem; margin-bottom:24px;">
+                Le jeu de pronostics de la Supply Asmodee – Guyancourt
+            </p>
+
+            <div class="card" style="text-align:left;">
+                <div class="card-title">📢 Comment ça marche ?</div>
+                <p style="margin-bottom:12px;">
+                    🔮 <strong>Partie 1 – Les pronos globaux</strong><br>
+                    Avant le coup d envoi du tournoi (11 juin), pronostique le parcours de la France 
+                    et les résultats de la compétition. Un seul essai, pas de modification possible !
+                </p>
+                <p style="margin-bottom:12px;">
+                    ⚡ <strong>Partie 2 – Pronos Scores</strong><br>
+                    Tout au long du tournoi, pronostique les scores des matchs du jour. 
+                    Plus tu joues, plus tu accumules de points !
+		    Attention, le score doit être prédit avant le coup d'envoi (bah oui, ça serait trop beau...).
+                </p>
+                <p style="margin-bottom:12px;">
+                    🏆 <strong>3 classements, 3 gagnants</strong><br>
+                    <span class="text-gold">👑 Le Champion Supply</span> – score total (Partie 1 + 2)<br>
+                    <span class="text-gold">🔮 Le Devin</span> – meilleur score Partie 1<br>
+                    <span class="text-gold">⚡ Le Quotidien</span> – meilleur score Partie 2
+                </p>
+                <p>
+                    📊 <strong>Barème :</strong>
+                    Bon résultat (1N2) = <span class="badge badge-points">3 pts</span> |
+                    Score exact = <span class="badge badge-points">5 pts</span> |
+                    Prono classique = <span class="badge badge-points">5 pts</span> |
+                    Prono difficile = <span class="badge badge-points">10 pts</span>
+                </p>
+            </div>
+        </div>
+
+	<!-- Countdown -->
+        <div class="countdown-wrapper">
+            <div class="countdown-label">Coup d'envoi dans</div>
+            <div class="countdown" id="countdown">
+                <div class="countdown-item">
+                    <div class="number" id="cd-days">--</div>
+                    <div class="label">Jours</div>
+                </div>
+                <div class="countdown-item">
+                    <div class="number" id="cd-hours">--</div>
+                    <div class="label">Heures</div>
+                </div>
+                <div class="countdown-item">
+                    <div class="number" id="cd-mins">--</div>
+                    <div class="label">Minutes</div>
+                </div>
+                <div class="countdown-item">
+                    <div class="number" id="cd-secs">--</div>
+                    <div class="label">Secondes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classement -->
+        <div class="section">
+            <h2 class="section-title">🏆 <span>Classement</span></h2>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('total')">👑 Champion Supply</button>
+                <button class="tab" onclick="switchTab('p1')">🔮 Le Devin</button>
+                <button class="tab" onclick="switchTab('p2')">⚡ Le Quotidien</button>
+            </div>
+
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Participant</th>
+                                <th>Partie 1</th>
+                                <th>Partie 2</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classement-body">
+                            <tr>
+                                <td colspan="5" class="text-center text-gray">
+                                    Chargement...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prochains matchs -->
+        <div class="section">
+            <h2 class="section-title">📅 <span>Prochains matchs</span></h2>
+            <div id="next-matches">
+                <p class="text-gray">Chargement...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="footer">
+        Pronos CDM 2026 – Service Supply – Asmodee Guyancourt 🇫🇷
+    </footer>
+
+    <!-- ====== SCRIPTS ====== -->
+    <script type="module">
+        import { supabase, loginByCode, getCurrentPlayer, logout, isAdmin } from './js/supabase-client.js';
+
+        // --- Rendre les fonctions accessibles globalement ---
+        window.handleLogin = handleLogin;
+        window.handleLogout = handleLogout;
+        window.switchTab = switchTab;
+
+        // --- Variables ---
+        let currentSort = 'total';
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            startCountdown();
+        });
+
+        // --- Authentification ---
+        function checkAuth() {
+            const player = getCurrentPlayer();
+            if (player) {
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('navbar-username').textContent = `Bonjour ${player.prenom} 👋`;
+                document.getElementById('navbar-user').style.display = 'flex';
+                if (player.is_admin) {
+                    document.getElementById('nav-admin').classList.remove('hidden');
+                }
+                loadClassement();
+                loadNextMatches();
+            } else {
+                document.getElementById('login-overlay').classList.remove('hidden');
+                document.getElementById('navbar-user').style.display = 'none';
+            }
+        }
+
+        async function handleLogin() {
+            const code = document.getElementById('login-code').value;
+            if (!code) return;
+
+            const result = await loginByCode(code);
+            if (result.success) {
+                checkAuth();
+            } else {
+                const errDiv = document.getElementById('login-error');
+                errDiv.textContent = '❌ Code invalide. Vérifie ton mail !';
+                errDiv.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            logout();
+        }
+
+        // Permettre login avec Entrée
+        document.getElementById('login-code')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        // --- Countdown ---
+        function startCountdown() {
+            const target = new Date('2026-06-11T21:00:00+02:00'); // Match d'ouverture heure Paris
+
+            function update() {
+                const now = new Date();
+                const diff = target - now;
+
+                if (diff <= 0) {
+                    document.getElementById('countdown').innerHTML =
+                        '<p class="text-gold" style="font-size:1.5rem;font-weight:800;">🎉 LA COUPE DU MONDE A COMMENCÉ !</p>';
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById('cd-days').textContent = days;
+                document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
+                document.getElementById('cd-mins').textContent = String(mins).padStart(2, '0');
+                document.getElementById('cd-secs').textContent = String(secs).padStart(2, '0');
+            }
+
+            update();
+            setInterval(update, 1000);
+        }
+
+        // --- Classement ---
+        async function loadClassement() {
+            const { data, error } = await supabase
+                .from('classement')
+                .select('*');
+
+            if (error || !data) {
+                document.getElementById('classement-body').innerHTML =
+                    '<tr><td colspan="5" class="text-center text-gray">Aucun classement disponible</td></tr>';
+                return;
+            }
+
+            renderClassement(data);
+        }
+
+        function renderClassement(data) {
+            // Trier selon l'onglet actif
+            const sortKey = currentSort === 'total' ? 'score_total'
+                          : currentSort === 'p1' ? 'score_partie1'
+                          : 'score_partie2';
+
+            data.sort((a, b) => b[sortKey] - a[sortKey]);
+
+            const tbody = document.getElementById('classement-body');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">Aucun participant</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map((row, i) => {
+                const rank = i + 1;
+                const rankClass = rank <= 3 ? `rank-${rank}` : '';
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+          	return `
+                    <tr>
+                        <td class="${rankClass}">${medal}</td>
+                        <td class="${rankClass}">${row.prenom} ${row.nom}</td>
+                        <td>${row.score_partie1} pts</td>
+                        <td>${row.score_partie2} pts</td>
+                        <td><strong>${row.score_total} pts</strong></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function switchTab(tab) {
+            currentSort = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            loadClassement();
+        }
+
+        // --- Prochains matchs ---
+        async function loadNextMatches() {
+            const now = new Date().toISOString();
+
+            const { data, error } = await supabase
+                .from('matches')
+                .select('*')
+                .gte('date_match', now)
+                .order('date_match', { ascending: true })
+                .limit(6);
+
+            const container = document.getElementById('next-matches');
+
+            if (error || !data || data.length === 0) {
+                container.innerHTML = '<p class="text-gray">Aucun match à venir</p>';
+                return;
+            }
+
+            container.innerHTML = data.map(m => {
+                const date = new Date(m.date_match);
+                const dateStr = date.toLocaleDateString('fr-FR', {
+                    weekday: 'short', day: 'numeric', month: 'short'
+                });
+                const timeStr = date.toLocaleTimeString('fr-FR', {
+                    hour: '2-digit', minute: '2-digit'
+                });
+
+                const isFrance = m.equipe_a === 'France' || m.equipe_b === 'France';
+
+                return `
+                    <div class="match-card ${isFrance ? 'is-france' : ''}">
+                        <div class="match-info">
+                            <span>${dateStr} à ${timeStr}</span>
+                            <span class="match-phase">${m.groupe ? 'Groupe ' + m.groupe : m.phase}</span>
+                        </div>
+                        <div class="match-teams">
+                            <span>${m.equipe_a}</span>
+                            <span class="text-gray">vs</span>
+                            <span>${m.equipe_b}</span>
+                        </div>
+                        <div class="match-result">${m.lieu || ''}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+	// --- Onglets Login / Register ---
+        window.switchLoginTab = function(tab) {
+            document.querySelectorAll('.login-box .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            if (tab === 'login') {
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+            } else {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('register-form').classList.remove('hidden');
+            }
+        };
+
+        // --- Inscription ---
+        window.handleRegister = async function() {
+            const prenom = document.getElementById('reg-prenom').value.trim();
+            const nom = document.getElementById('reg-nom').value.trim();
+            const code = document.getElementById('reg-code').value.trim().toUpperCase();
+            const errDiv = document.getElementById('register-error');
+            const successDiv = document.getElementById('register-success');
+
+            errDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+
+            if (!prenom || !nom || !code) {
+                errDiv.textContent = '❌ Remplis tous les champs !';
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (code.length < 4) {
+                errDiv.textContent = '❌ Le code doit faire au moins 4 caractères !';
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const { error } = await supabase
+                .from('players')
+                .insert({
+                    prenom: prenom,
+                    nom: nom,
+                    email: prenom.charAt(0).toLowerCase() + '.' + nom.toLowerCase() + '@asmodee.com',
+                    code_unique: code,
+                    is_admin: false
+                });
+
+            if (error) {
+                if (error.message.includes('duplicate') && error.message.includes('code_unique')) {
+                    errDiv.textContent = '❌ Ce code est déjà pris, choisis-en un autre !';
+                } else if (error.message.includes('duplicate')) {
+                    errDiv.textContent = '❌ Ce compte existe déjà !';
+                } else {
+                    errDiv.textContent = '❌ Erreur : ' + error.message;
+                }
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            successDiv.innerHTML = '🎉 Compte créé ! Connecte-toi avec ton code :<br><strong style="font-size:1.5rem;color:var(--gold)">' + code + '</strong>';
+            successDiv.classList.remove('hidden');
+        };
+
+    </script>
+    
+     <script>
+        // --- Toggle Thème ---
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            const btn = document.getElementById('btn-theme');
+            if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+        }
+
+        // Charger le thème sauvegardé
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light') {
+                document.body.classList.add('light');
+                const btn = document.getElementById('btn-theme');
+                if (btn) btn.textContent = '☀️';
+            }
+        })();
+    </script>
+</body>
+</html>

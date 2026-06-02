@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Pronos du Jour – CDM 2026</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+    		<img src="assets/logo-asmodee.png" alt="Asmodee" style="height:32px; vertical-align:middle;">
+    		Pronos CDM 2026
+	    </div>
+            <div class="navbar-links">
+                <a href="index.html">Accueil</a>
+                <a href="pronostics.html">Mes Pronos</a>
+                <a href="pronos-jour.html" class="active">Pronos Scores</a>
+                <a href="resultats.html">Résultats</a>
+                <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
+            </div>
+	    <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Changer de thème">🌙</button>
+            <div class="navbar-user" id="navbar-user">
+                <span id="navbar-username"></span>
+                <button class="btn-logout" onclick="handleLogout()">Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="section">
+            <h2 class="section-title">⚡ <span>Pronos quotidiens, pour les vrais chercheurs de point</span></h2>
+            <p class="text-gray mb-16">Pronostique les matchs à venir pour gagner des points bonus ! Deadline : avant le coup d'envoi de chaque match.</p>
+
+            <div id="msg" class="hidden"></div>
+
+            <!-- Filtres -->
+            <div class="tabs" style="margin-bottom:16px;">
+                <button class="tab active" onclick="filterMatches('today')">Aujourd'hui</button>
+                <button class="tab" onclick="filterMatches('tomorrow')">Demain</button>
+                <button class="tab" onclick="filterMatches('upcoming')">À venir</button>
+            </div>
+
+            <div id="matches-container">
+                <p class="text-gray">Chargement des matchs...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        Pronos CDM 2026 – Service Supply – Asmodee Guyancourt 🇫🇷
+    </footer>
+
+    <script type="module">
+        import { supabase, getCurrentPlayer, logout, isAdmin } from './js/supabase-client.js';
+
+        window.handleLogout = () => logout();
+        window.filterMatches = filterMatches;
+        window.submitProno = submitProno;
+
+        const player = getCurrentPlayer();
+        if (!player) { window.location.href = 'index.html'; }
+
+        document.getElementById('navbar-username').textContent = `Bonjour ${player.prenom} 👋`;
+        if (isAdmin()) document.getElementById('nav-admin').classList.remove('hidden');
+
+        let allMatches = [];
+        let existingPronos = {};
+        let currentFilter = 'today';
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            renderMatches();
+        });
+
+        async function loadData() {
+            // Charger tous les matchs non terminés
+            const { data: matches } = await supabase
+                .from('matches')
+                .select('*')
+                .eq('is_finished', false)
+                .order('date_match', { ascending: true });
+
+            allMatches = matches || [];
+
+            // Charger les pronos existants du joueur
+            const { data: pronos } = await supabase
+                .from('pronos_match')
+                .select('*')
+                .eq('player_id', player.id);
+
+            existingPronos = {};
+            if (pronos) {
+                pronos.forEach(p => {
+                    existingPronos[p.match_id] = p;
+                });
+            }
+        }
+
+        function filterMatches(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            renderMatches();
+        }
+
+        function renderMatches() {
+            const container = document.getElementById('matches-container');
+            const now = new Date();
+
+            let filtered = allMatches.filter(m => {
+                const matchDate = new Date(m.date_match);
+                if (currentFilter === 'today') {
+                    return matchDate.toDateString() === now.toDateString();
+                } else if (currentFilter === 'tomorrow') {
+                    const tomorrow = new Date(now);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    return matchDate.toDateString() === tomorrow.toDateString();
+                } else {
+                    return matchDate > now;
+                }
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="card text-center text-gray">Aucun match pour cette période 📭</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(m => {
+                const date = new Date(m.date_match);
+                const dateStr = date.toLocaleDateString('fr-FR', {
+                    weekday: 'short', day: 'numeric', month: 'short'
+                });
+                const timeStr = date.toLocaleTimeString('fr-FR', {
+                    hour: '2-digit', minute: '2-digit'
+                });
+
+                const isFrance = m.equipe_a === 'France' || m.equipe_b === 'France';
+                const isPast = new Date() > date;
+                const existing = existingPronos[m.id];
+
+                let pronoSection = '';
+                if (isPast) {
+                    pronoSection = "<p class='text-gray mt-8'>⏰ Coup d envoi passé</p>";
+                } else if (existing) {
+                    pronoSection = `
+                        <p class="text-green mt-8">
+                            ✅ Ton prono : ${existing.prono_score_a} – ${existing.prono_score_b}
+                        </p>`;
+                } else {
+                    pronoSection = `
+                        <div class="score-input-group mt-16">
+                            <span class="team-name left">${m.equipe_a}</span>
+                            <input type="number" id="pa-${m.id}" min="0" max="20"
+                                   style="width:60px;text-align:center;font-size:1.3rem;font-weight:700">
+                            <span class="vs">–</span>
+                            <input type="number" id="pb-${m.id}" min="0" max="20"
+                                   style="width:60px;text-align:center;font-size:1.3rem;font-weight:700">
+                            <span class="team-name right">${m.equipe_b}</span>
+                        </div>
+                        <div class="text-center mt-8">
+                            <button class="btn btn-primary" onclick="submitProno(${m.id})">
+                                Valider
+                            </button>
+                        </div>`;
+                }
+
+                return `
+                    <div class="match-card ${isFrance ? 'is-france' : ''} ${isPast ? 'is-finished' : ''}">
+                        <div class="match-info">
+                            <span>${dateStr} à ${timeStr}</span>
+                            <span class="match-phase">${m.groupe ? 'Groupe ' + m.groupe : m.phase}</span>
+                        </div>
+                        <div class="match-teams">
+                            <span>${m.equipe_a}</span>
+                            <span class="text-gray">vs</span>
+                            <span>${m.equipe_b}</span>
+                        </div>
+                        <div class="match-result text-gray">${m.lieu || ''}</div>
+                        ${pronoSection}
+                    </div>`;
+            }).join('');
+        }
+
+        async function submitProno(matchId) {
+            const scoreA = document.getElementById(`pa-${matchId}`).value;
+            const scoreB = document.getElementById(`pb-${matchId}`).value;
+            const msgDiv = document.getElementById('msg');
+
+            if (scoreA === '' || scoreB === '') {
+                msgDiv.className = 'alert alert-error';
+                msgDiv.textContent = '❌ Remplis les deux scores !';
+                return;
+            }
+
+            const { error } = await supabase
+                .from('pronos_match')
+                .upsert({
+                    player_id: player.id,
+                    match_id: matchId,
+                    prono_score_a: parseInt(scoreA),
+                    prono_score_b: parseInt(scoreB)
+                }, { onConflict: 'player_id,match_id' });
+
+            if (error) {
+                msgDiv.className = 'alert alert-error';
+                msgDiv.textContent = '❌ Erreur : ' + error.message;
+                return;
+            }
+
+            // Rafraîchir
+            existingPronos[matchId] = {
+                prono_score_a: parseInt(scoreA),
+                prono_score_b: parseInt(scoreB)
+            };
+
+            msgDiv.className = 'alert alert-success';
+	    msgDiv.textContent = '✅ Prono enregistré !';
+            setTimeout(() => { msgDiv.className = 'hidden'; }, 3000);
+
+            renderMatches();
+        }
+    </script>
+
+     <script>
+        // --- Toggle Thème ---
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            const btn = document.getElementById('btn-theme');
+            if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+        }
+
+        // Charger le thème sauvegardé
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light') {
+                document.body.classList.add('light');
+                const btn = document.getElementById('btn-theme');
+                if (btn) btn.textContent = '☀️';
+            }
+        })();
+    </script>
+
+</body>
+</html>
