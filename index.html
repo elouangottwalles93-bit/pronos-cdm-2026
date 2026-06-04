@@ -45,7 +45,7 @@
             <div id="login-form">
                 <p class="text-gray" style="margin-bottom:16px;">Entre ton code personnel</p>
                 <div class="form-group">
-                    <input type="text" id="login-code" placeholder="Ex: ELOU-A7X2"
+                    <input type="text" id="login-code" placeholder="Ex: ALLEZLESBLEUS"
                            style="text-align:center; text-transform:uppercase; font-size:1.2rem;">
                 </div>
                 <div id="login-error" class="alert alert-error hidden"></div>
@@ -431,10 +431,10 @@
                 errDiv.classList.remove('hidden');
                 return;
             }
+	    await supabase.rpc('refresh_classement');
 
             successDiv.innerHTML = '🎉 Compte créé ! Connecte-toi avec ton code :<br><strong style="font-size:1.5rem;color:var(--gold)">' + code + '</strong>';
             successDiv.classList.remove('hidden');
-	    await supabase.rpc('refresh_classement');
         };
 
     </script>
