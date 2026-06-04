@@ -17,7 +17,7 @@
 	    </div>
             <div class="navbar-links">
                 <a href="index.html" class="active">Accueil</a>
-                <a href="pronostics.html">Mes pronos</a>
+                <a href="pronostics.html">Mes Pronos</a>
                 <a href="pronos-jour.html">Prono scores</a>
                 <a href="resultats.html">Résultats</a>
                 <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
@@ -233,7 +233,7 @@
                 checkAuth();
             } else {
                 const errDiv = document.getElementById('login-error');
-                errDiv.textContent = '❌ Code invalide. Vérifie ton code !';
+                errDiv.textContent = '❌ Code invalide. Vérifie ton mail !';
                 errDiv.classList.remove('hidden');
             }
         }
@@ -434,6 +434,7 @@
 
             successDiv.innerHTML = '🎉 Compte créé ! Connecte-toi avec ton code :<br><strong style="font-size:1.5rem;color:var(--gold)">' + code + '</strong>';
             successDiv.classList.remove('hidden');
+	    await supabase.rpc('refresh_classement');
         };
 
     </script>
