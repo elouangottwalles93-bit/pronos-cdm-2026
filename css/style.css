@@ -526,6 +526,11 @@ tr:hover {
     display: block;
 }
 
+/* --- Tabs spaced --- */
+.tabs[style*="space-between"] {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+}
+
 /* --- Badge --- */
 .badge {
     display: inline-block;
