@@ -36,16 +36,26 @@
 
             <div id="msg" class="hidden"></div>
 
-            <!-- Filtres -->
-            <div class="tabs" style="margin-bottom:16px;">
-                <button class="tab active" onclick="filterMatches('today')">Aujourd'hui</button>
-                <button class="tab" onclick="filterMatches('tomorrow')">Demain</button>
-                <button class="tab" onclick="filterMatches('upcoming')">À venir</button>
+                        <!-- Filtres -->
+            <div class="tabs" style="margin-bottom:16px; justify-content: space-between;">
+                <div style="display:flex; gap:4px;">
+                    <button class="tab active" onclick="filterMatches('today')">Aujourd'hui</button>
+                    <button class="tab" onclick="filterMatches('tomorrow')">Demain</button>
+                    <button class="tab" onclick="filterMatches('upcoming')">À venir</button>
+                </div>
+                <div>
+                    <button class="tab" onclick="showHistory()">📜 Mon historique</button>
+                </div>
             </div>
 
             <div id="matches-container">
                 <p class="text-gray">Chargement des matchs...</p>
             </div>
+
+            <div id="history-container" class="hidden">
+                <p class="text-gray">Chargement...</p>
+            </div>
+
         </div>
     </main>
 
@@ -59,6 +69,8 @@
         window.handleLogout = () => logout();
         window.filterMatches = filterMatches;
         window.submitProno = submitProno;
+        window.showHistory = showHistory;
+        window.backToMatchs = backToMatchs;
 
         const player = getCurrentPlayer();
         if (!player) { window.location.href = 'index.html'; }
@@ -98,13 +110,6 @@
                     existingPronos[p.match_id] = p;
                 });
             }
-        }
-
-        function filterMatches(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            renderMatches();
         }
 
         function renderMatches() {
@@ -221,6 +226,194 @@
 	    msgDiv.textContent = '✅ Prono enregistré !';
             setTimeout(() => { msgDiv.className = 'hidden'; }, 3000);
 
+            renderMatches();
+        }
+        // --- Historique ---
+        async function showHistory() {
+            // Activer l'onglet
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Basculer l'affichage
+            document.getElementById('matches-container').classList.add('hidden');
+            const container = document.getElementById('history-container');
+            container.classList.remove('hidden');
+            container.innerHTML = '<p class="text-gray">Chargement...</p>';
+
+            // Charger les pronos du joueur avec les matchs associés
+            const { data: pronos, error } = await supabase
+                .from('pronos_match')
+                .select('*, matches(*)')
+                .eq('player_id', player.id)
+                .order('submitted_at', { ascending: false });
+
+            if (error || !pronos || pronos.length === 0) {
+                container.innerHTML = '<div class="card text-center text-gray">Aucun prono enregistré pour le moment 📭</div>';
+                return;
+            }
+
+            // Séparer matchs terminés et en attente
+            const finished = pronos.filter(p => p.matches.is_finished);
+            const pending = pronos.filter(p => !p.matches.is_finished);
+
+            // Calculer le total des points
+            let totalPoints = 0;
+
+            let html = '';
+
+            // --- Matchs terminés ---
+            if (finished.length > 0) {
+                html += '<div class="card"><div class="card-title">✅ Matchs terminés</div>';
+
+                html += finished.map(p => {
+                    const m = p.matches;
+                    const date = new Date(m.date_match);
+                    const dateStr = date.toLocaleDateString('fr-FR', {
+                        weekday: 'short', day: 'numeric', month: 'short'
+                    });
+
+                    const isFrance = m.equipe_a === 'France' || m.equipe_b === 'France';
+
+                    // Calculer les points
+                    let points = 0;
+                    let pointsLabel = '';
+                    let pointsClass = '';
+
+                    const psa = p.prono_score_a;
+                    const psb = p.prono_score_b;
+                    const rsa = m.score_a;
+                    const rsb = m.score_b;
+
+                    if (psa === rsa && psb === rsb) {
+                        points = 5;
+                        pointsLabel = '🎯 Score exact ! +5 pts';
+                        pointsClass = 'text-green';
+                    } else if (
+                        (psa > psb && rsa > rsb) ||
+                        (psa < psb && rsa < rsb) ||
+                        (psa === psb && rsa === rsb)
+                    ) {
+                        points = 3;
+                        pointsLabel = '✅ Bon résultat +3 pts';
+                        pointsClass = 'text-gold';
+                    } else {
+                        points = 0;
+                        pointsLabel = '❌ Raté 0 pt';
+                        pointsClass = 'text-red';
+                    }
+
+                    totalPoints += points;
+
+                    const groupeLabel = m.groupe ? 'Groupe ' + m.groupe : m.phase;
+
+                    return `
+                        <div class="match-card ${isFrance ? 'is-france' : ''}" style="opacity:1;">
+                            <div class="match-info">
+                                <span>${dateStr}</span>
+                                <span class="match-phase">${groupeLabel}</span>
+                            </div>
+                            <div class="match-teams">
+                                <span>${m.equipe_a}</span>
+                                <strong class="text-gold">${rsa} – ${rsb}</strong>
+                                <span>${m.equipe_b}</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);">
+                                <span class="text-gray">Ton prono : <strong>${psa} – ${psb}</strong></span>
+                                <span class="${pointsClass}" style="font-weight:700;">${pointsLabel}</span>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                html += '</div>';
+            }
+
+            // --- Matchs en attente ---
+            if (pending.length > 0) {
+                html += '<div class="card"><div class="card-title">⏳ En attente du résultat</div>';
+
+                html += pending.map(p => {
+                    const m = p.matches;
+                    const date = new Date(m.date_match);
+                    const dateStr = date.toLocaleDateString('fr-FR', {
+                        weekday: 'short', day: 'numeric', month: 'short'
+                    });
+
+                    const groupeLabel = m.groupe ? 'Groupe ' + m.groupe : m.phase;
+                    const isFrance = m.equipe_a === 'France' || m.equipe_b === 'France';
+
+                    return `
+                        <div class="match-card ${isFrance ? 'is-france' : ''}">
+                            <div class="match-info">
+                                <span>${dateStr}</span>
+                                <span class="match-phase">${groupeLabel}</span>
+                            </div>
+                            <div class="match-teams">
+                                <span>${m.equipe_a}</span>
+                                <span class="text-gray">vs</span>
+                                <span>${m.equipe_b}</span>
+                            </div>
+                            <div style="margin-top:12px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);">
+                                <span class="text-gray">Ton prono : <strong>${p.prono_score_a} – ${p.prono_score_b}</strong></span>
+                                <span class="badge badge-points" style="margin-left:8px;">En attente</span>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                html += '</div>';
+            }
+
+            // --- Résumé des points ---
+            const totalMatchs = finished.length;
+            const exactCount = finished.filter(p => p.prono_score_a === p.matches.score_a && p.prono_score_b === p.matches.score_b).length;
+            const bonResultat = finished.filter(p => {
+                const psa = p.prono_score_a, psb = p.prono_score_b;
+                const rsa = p.matches.score_a, rsb = p.matches.score_b;
+                return (psa !== rsa || psb !== rsb) && (
+                    (psa > psb && rsa > rsb) ||
+                    (psa < psb && rsa < rsb) ||
+                    (psa === psb && rsa === rsb)
+                );
+            }).length;
+
+            const summaryHtml = `
+                <div class="card" style="text-align:center;">
+                    <div class="card-title" style="justify-content:center;">📊 Résumé Pronos Scores</div>
+                    <div style="display:flex; justify-content:center; gap:32px; flex-wrap:wrap; margin-top:12px;">
+                        <div>
+                            <div style="font-size:2rem; font-weight:800; color:var(--gold);">${totalPoints}</div>
+                            <div class="text-gray" style="font-size:0.85rem;">Points total</div>
+                        </div>
+                        <div>
+                            <div style="font-size:2rem; font-weight:800; color:var(--green);">${exactCount}</div>
+                            <div class="text-gray" style="font-size:0.85rem;">Scores exacts</div>
+                        </div>
+                        <div>
+                            <div style="font-size:2rem; font-weight:800; color:var(--gold);">${bonResultat}</div>
+                            <div class="text-gray" style="font-size:0.85rem;">Bons résultats</div>
+                        </div>
+                        <div>
+                            <div style="font-size:2rem; font-weight:800; color:var(--white);">${totalMatchs + pending.length}</div>
+                            <div class="text-gray" style="font-size:0.85rem;">Matchs pronostiqués</div>
+                        </div>
+                    </div>
+                </div>`;
+
+            container.innerHTML = summaryHtml + html;
+        }
+
+        function backToMatchs() {
+            document.getElementById('history-container').classList.add('hidden');
+            document.getElementById('matches-container').classList.remove('hidden');
+            filterMatches('today');
+        }
+
+        // Modifier filterMatches pour revenir à la vue matchs
+        function filterMatches(filter) {
+            document.getElementById('history-container').classList.add('hidden');
+            document.getElementById('matches-container').classList.remove('hidden');
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
             renderMatches();
         }
     </script>
