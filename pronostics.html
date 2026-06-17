@@ -34,8 +34,11 @@
             <h2 class="section-title">🔮 <span>C'est l'heure de faire vos pronos !</span></h2>
             <p class="text-gray mb-24">Remplis tes pronostics avant le 11 juin 2026 – une seule chance, pas de modification possible !</p>
 
-            <div id="already-submitted" class="alert alert-info hidden">
-                ✅ Tu as déjà soumis tes pronostics ! Ils sont verrouillés.
+            <div id="already-submitted" class="hidden">
+                <div class="alert alert-info">
+                    ✅ Tu as déjà soumis tes pronostics ! Ils sont verrouillés.
+                </div>
+                <div id="recap-pronos"></div>
             </div>
 
             <div id="msg" class="hidden"></div>
@@ -258,20 +261,157 @@
         async function checkExisting() {
             const { data: frData } = await supabase
                 .from('pronos_france')
-                .select('id')
+                .select('*')
                 .eq('player_id', player.id)
                 .maybeSingle();
 
             const { data: genData } = await supabase
                 .from('pronos_general')
-                .select('id')
+                .select('*')
                 .eq('player_id', player.id)
                 .maybeSingle();
 
-            if (frData && genData) {
+            if (frData || genData) {
                 document.getElementById('already-submitted').classList.remove('hidden');
                 document.getElementById('grand-prono-form').style.display = 'none';
+                renderRecap(frData, genData);
             }
+        }
+
+        function renderRecap(fr, gen) {
+            const container = document.getElementById('recap-pronos');
+
+            let html = '';
+
+            // ========== RECAP FRANCE ==========
+            if (fr) {
+                html += `
+                <div class="card">
+                    <div class="card-title">🇫🇷 Tes pronos – Parcours France</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td class="text-gray">Résultats en poule</td>
+                                    <td><strong>${fr.nb_victoires_poule ?? '—'}V ${fr.nb_nuls_poule ?? '—'}N ${fr.nb_defaites_poule ?? '—'}D</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">France vs Sénégal</td>
+                                    <td><strong>${fr.score_france_senegal_a ?? '—'} – ${fr.score_france_senegal_b ?? '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">France vs Irak</td>
+                                    <td><strong>${fr.score_france_irak_a ?? '—'} – ${fr.score_france_irak_b ?? '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Norvège vs France</td>
+                                    <td><strong>${fr.score_norvege_france_a ?? '—'} – ${fr.score_norvege_france_b ?? '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Stade d'élimination</td>
+                                    <td><strong>${formatElimination(fr.stade_elimination)}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Meilleur buteur FR</td>
+                                    <td><strong>${fr.meilleur_buteur_fr || '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Nb buts total France</td>
+                                    <td><strong>${fr.nb_buts_total_france ?? '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Clean sheets</td>
+                                    <td><strong>${fr.nb_clean_sheets ?? '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Plus beau but FR</td>
+                                    <td><strong>${fr.auteur_plus_beau_but || '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">🤪 Plus de cartons</td>
+                                    <td><strong>${fr.joueur_plus_cartons || '—'}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }
+
+            // ========== RECAP GENERAL ==========
+            if (gen) {
+                html += `
+                <div class="card">
+                    <div class="card-title">🌍 Tes pronos – Compétition Générale</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td class="text-gray">Équipe championne 🏆</td>
+                                    <td><strong>${gen.equipe_championne || '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Équipe finaliste</td>
+                                    <td><strong>${gen.equipe_finaliste || '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Score finale</td>
+                                    <td><strong>${gen.score_finale_a != null ? gen.score_finale_a + ' – ' + gen.score_finale_b : '⏳ Pas encore saisi'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Meilleur buteur tournoi</td>
+                                    <td><strong>${gen.meilleur_buteur_tournoi || '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Meilleur gardien</td>
+                                    <td><strong>${gen.meilleur_gardien || '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Meilleur joueur</td>
+                                    <td><strong>${gen.meilleur_joueur || '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">Nb buts total tournoi</td>
+                                    <td><strong>${gen.nb_buts_total_tournoi ?? '—'}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">🤪 Match le + de buts</td>
+                                    <td><strong>${gen.match_plus_buts_equipe_a || '—'} ${gen.match_plus_buts_score_a ?? ''} – ${gen.match_plus_buts_score_b ?? ''} ${gen.match_plus_buts_equipe_b || ''}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-gray">🤪 Nb de CSC</td>
+                                    <td><strong>${gen.nb_csc_tournoi ?? '—'}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }
+
+            // Date de soumission
+            const submitDate = fr ? new Date(fr.submitted_at) : (gen ? new Date(gen.submitted_at) : null);
+            if (submitDate) {
+                const dateStr = submitDate.toLocaleDateString('fr-FR', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+                html += `<p class="text-gray text-center mt-16">📅 Soumis le ${dateStr}</p>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function formatElimination(stade) {
+            if (!stade) return '—';
+            const labels = {
+                'poules': '❌ Éliminée en poules',
+                '32e': '32èmes de finale',
+                '16e': '16èmes de finale',
+                'quart': 'Quarts de finale',
+                'demi': 'Demi-finales',
+                'finale': 'Finale (perdant)',
+                'champion': '🏆 Championne du monde !'
+            };
+            return labels[stade] || stade;
         }
 
         checkExisting();
