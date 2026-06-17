@@ -258,7 +258,7 @@
         if (isAdmin()) document.getElementById('nav-admin').classList.remove('hidden');
 
          // Vérifier si déjà soumis
-                async function checkExisting() {
+        async function checkExisting() {
             const { data: frData } = await supabase
                 .from('pronos_france')
                 .select('*')
@@ -300,7 +300,7 @@
 
             // ========== RECAP FRANCE ==========
             if (fr) {
-                html += '<div class="card"><div class="card-title">🇫🇷 Tes pronos – Parcours France</div>';
+                html += '<div class="card"><div class="card-title">Tes pronos – Parcours France</div>';
                 html += '<div class="table-wrapper"><table><thead><tr><th>Pronostic</th><th>Ton prono</th><th>Résultat réel</th><th>Points</th></tr></thead><tbody>';
 
                 // 1) V/N/D en poule (10 pts)
