@@ -258,7 +258,7 @@
         if (isAdmin()) document.getElementById('nav-admin').classList.remove('hidden');
 
          // Vérifier si déjà soumis
-        async function checkExisting() {
+                async function checkExisting() {
             const { data: frData } = await supabase
                 .from('pronos_france')
                 .select('*')
@@ -272,132 +272,233 @@
                 .maybeSingle();
 
             if (frData || genData) {
+                // Charger les résultats réels
+                const { data: reel } = await supabase
+                    .from('resultats_reels')
+                    .select('*')
+                    .eq('id', 1)
+                    .maybeSingle();
+
+                // Charger les matchs de poule France terminés
+                const { data: matchsFrance } = await supabase
+                    .from('matches')
+                    .select('*')
+                    .eq('phase', 'groupe')
+                    .eq('is_finished', true)
+                    .or('equipe_a.eq.France,equipe_b.eq.France');
+
                 document.getElementById('already-submitted').classList.remove('hidden');
                 document.getElementById('grand-prono-form').style.display = 'none';
-                renderRecap(frData, genData);
+                renderRecap(frData, genData, reel, matchsFrance || []);
             }
         }
 
-        function renderRecap(fr, gen) {
+        function renderRecap(fr, gen, reel, matchsFrance) {
             const container = document.getElementById('recap-pronos');
-
+            let totalPoints = 0;
             let html = '';
 
             // ========== RECAP FRANCE ==========
             if (fr) {
-                html += `
-                <div class="card">
-                    <div class="card-title">🇫🇷 Tes pronos – Parcours France</div>
-                    <div class="table-wrapper">
-                        <table>
-                            <tbody>
-                                <tr>
-                                    <td class="text-gray">Résultats en poule</td>
-                                    <td><strong>${fr.nb_victoires_poule ?? '—'}V ${fr.nb_nuls_poule ?? '—'}N ${fr.nb_defaites_poule ?? '—'}D</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">France vs Sénégal</td>
-                                    <td><strong>${fr.score_france_senegal_a ?? '—'} – ${fr.score_france_senegal_b ?? '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">France vs Irak</td>
-                                    <td><strong>${fr.score_france_irak_a ?? '—'} – ${fr.score_france_irak_b ?? '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Norvège vs France</td>
-                                    <td><strong>${fr.score_norvege_france_a ?? '—'} – ${fr.score_norvege_france_b ?? '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Stade d'élimination</td>
-                                    <td><strong>${formatElimination(fr.stade_elimination)}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Meilleur buteur FR</td>
-                                    <td><strong>${fr.meilleur_buteur_fr || '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Nb buts total France</td>
-                                    <td><strong>${fr.nb_buts_total_france ?? '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Clean sheets</td>
-                                    <td><strong>${fr.nb_clean_sheets ?? '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Plus beau but FR</td>
-                                    <td><strong>${fr.auteur_plus_beau_but || '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">🤪 Plus de cartons</td>
-                                    <td><strong>${fr.joueur_plus_cartons || '—'}</strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>`;
+                html += '<div class="card"><div class="card-title">🇫🇷 Tes pronos – Parcours France</div>';
+                html += '<div class="table-wrapper"><table><thead><tr><th>Pronostic</th><th>Ton prono</th><th>Résultat réel</th><th>Points</th></tr></thead><tbody>';
+
+                // 1) V/N/D en poule (10 pts)
+                let realV = null, realN = null, realD = null;
+                if (matchsFrance.length > 0) {
+                    realV = matchsFrance.filter(m =>
+                        (m.equipe_a === 'France' && m.score_a > m.score_b) ||
+                        (m.equipe_b === 'France' && m.score_b > m.score_a)
+                    ).length;
+                    realN = matchsFrance.filter(m => m.score_a === m.score_b).length;
+                    realD = matchsFrance.filter(m =>
+                        (m.equipe_a === 'France' && m.score_a < m.score_b) ||
+                        (m.equipe_b === 'France' && m.score_b < m.score_a)
+                    ).length;
+                }
+
+                const vndProno = `${fr.nb_victoires_poule ?? '—'}V ${fr.nb_nuls_poule ?? '—'}N ${fr.nb_defaites_poule ?? '—'}D`;
+                const vndReel = realV !== null ? `${realV}V ${realN}N ${realD}D` : '⏳';
+                let vndPts = 0;
+                if (realV !== null && fr.nb_victoires_poule === realV && fr.nb_nuls_poule === realN && fr.nb_defaites_poule === realD) {
+                    vndPts = 10;
+                }
+                totalPoints += vndPts;
+                html += renderRow('Résultats en poule', vndProno, vndReel, vndPts, realV !== null);
+
+                // 2-4) Scores exacts matchs de poule
+                const matchPairs = [
+                    { label: 'France vs Sénégal', pa: fr.score_france_senegal_a, pb: fr.score_france_senegal_b, eqA: 'France', eqB: 'Sénégal' },
+                    { label: 'France vs Irak', pa: fr.score_france_irak_a, pb: fr.score_france_irak_b, eqA: 'France', eqB: 'Irak' },
+                    { label: 'Norvège vs France', pa: fr.score_norvege_france_a, pb: fr.score_norvege_france_b, eqA: 'Norvège', eqB: 'France' }
+                ];
+
+                matchPairs.forEach(mp => {
+                    const realMatch = matchsFrance.find(m => m.equipe_a === mp.eqA && m.equipe_b === mp.eqB);
+                    const pronoStr = mp.pa != null ? `${mp.pa} – ${mp.pb}` : '—';
+                    let reelStr = '⏳';
+                    let pts = 0;
+                    let resolved = false;
+
+                    if (realMatch) {
+                        resolved = true;
+                        reelStr = `${realMatch.score_a} – ${realMatch.score_b}`;
+                        if (mp.pa === realMatch.score_a && mp.pb === realMatch.score_b) {
+                            pts = 5;
+                        } else if (
+                            (mp.pa > mp.pb && realMatch.score_a > realMatch.score_b) ||
+                            (mp.pa < mp.pb && realMatch.score_a < realMatch.score_b) ||
+                            (mp.pa === mp.pb && realMatch.score_a === realMatch.score_b)
+                        ) {
+                            pts = 3;
+                        }
+                    }
+                    totalPoints += pts;
+                    html += renderRow(mp.label, pronoStr, reelStr, pts, resolved);
+                });
+
+                // 5) Stade élimination (5 pts)
+                const elimProno = formatElimination(fr.stade_elimination);
+                const elimReel = reel && reel.stade_elimination_france ? formatElimination(reel.stade_elimination_france) : '⏳';
+                let elimPts = 0;
+                const elimResolved = reel && reel.stade_elimination_france != null;
+                if (elimResolved && fr.stade_elimination === reel.stade_elimination_france) elimPts = 5;
+                totalPoints += elimPts;
+                html += renderRow("Stade d'élimination", elimProno, elimReel, elimPts, elimResolved);
+
+                // 6) Meilleur buteur FR (5 pts)
+                totalPoints += renderTextRow('Meilleur buteur FR', fr.meilleur_buteur_fr, reel?.meilleur_buteur_fr, 5);
+
+                // 7) Nb buts total France (10 pts)
+                totalPoints += renderNumberRow('Nb buts total France', fr.nb_buts_total_france, reel?.nb_buts_total_france, 10);
+
+                // 8) Clean sheets (10 pts)
+                totalPoints += renderNumberRow('Clean sheets', fr.nb_clean_sheets, reel?.nb_clean_sheets_france, 10);
+
+                // 9) Plus beau but FR (5 pts)
+                totalPoints += renderTextRow('Plus beau but FR', fr.auteur_plus_beau_but, reel?.auteur_plus_beau_but_fr, 5);
+
+                // 10) Plus de cartons (5 pts)
+                totalPoints += renderTextRow('🤪 Plus de cartons', fr.joueur_plus_cartons, reel?.joueur_plus_cartons_fr, 5);
+
+                // Helper inline pour les lignes texte et nombre
+                function renderTextRow(label, prono, reel_val, maxPts) {
+                    const pronoStr = prono || '—';
+                    const reelStr = reel_val || '⏳';
+                    const resolved = reel_val != null;
+                    let pts = 0;
+                    if (resolved && prono && reel_val && prono.toLowerCase().trim() === reel_val.toLowerCase().trim()) pts = maxPts;
+                    html += renderRow(label, pronoStr, reelStr, pts, resolved);
+                    return pts;
+                }
+
+                function renderNumberRow(label, prono, reel_val, maxPts) {
+                    const pronoStr = prono != null ? String(prono) : '—';
+                    const reelStr = reel_val != null ? String(reel_val) : '⏳';
+                    const resolved = reel_val != null;
+                    let pts = 0;
+                    if (resolved && prono != null && prono === reel_val) pts = maxPts;
+                    html += renderRow(label, pronoStr, reelStr, pts, resolved);
+                    return pts;
+                }
+
+                html += '</tbody></table></div></div>';
             }
 
             // ========== RECAP GENERAL ==========
             if (gen) {
-                html += `
-                <div class="card">
-                    <div class="card-title">🌍 Tes pronos – Compétition Générale</div>
-                    <div class="table-wrapper">
-                        <table>
-                            <tbody>
-                                <tr>
-                                    <td class="text-gray">Équipe championne 🏆</td>
-                                    <td><strong>${gen.equipe_championne || '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Équipe finaliste</td>
-                                    <td><strong>${gen.equipe_finaliste || '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Score finale</td>
-                                    <td><strong>${gen.score_finale_a != null ? gen.score_finale_a + ' – ' + gen.score_finale_b : '⏳ Pas encore saisi'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Meilleur buteur tournoi</td>
-                                    <td><strong>${gen.meilleur_buteur_tournoi || '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Meilleur gardien</td>
-                                    <td><strong>${gen.meilleur_gardien || '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Meilleur joueur</td>
-                                    <td><strong>${gen.meilleur_joueur || '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">Nb buts total tournoi</td>
-                                    <td><strong>${gen.nb_buts_total_tournoi ?? '—'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">🤪 Match le + de buts</td>
-                                    <td><strong>${gen.match_plus_buts_equipe_a || '—'} ${gen.match_plus_buts_score_a ?? ''} – ${gen.match_plus_buts_score_b ?? ''} ${gen.match_plus_buts_equipe_b || ''}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-gray">🤪 Nb de CSC</td>
-                                    <td><strong>${gen.nb_csc_tournoi ?? '—'}</strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>`;
+                html += '<div class="card"><div class="card-title">🌍 Tes pronos – Compétition Générale</div>';
+                html += '<div class="table-wrapper"><table><thead><tr><th>Pronostic</th><th>Ton prono</th><th>Résultat réel</th><th>Points</th></tr></thead><tbody>';
+
+                // Helpers locaux (redéclarés pour ce scope)
+                function renderTextRowGen(label, prono, reel_val, maxPts) {
+                    const pronoStr = prono || '—';
+                    const reelStr = reel_val || '⏳';
+                    const resolved = reel_val != null;
+                    let pts = 0;
+                    if (resolved && prono && reel_val && prono.toLowerCase().trim() === reel_val.toLowerCase().trim()) pts = maxPts;
+                    html += renderRow(label, pronoStr, reelStr, pts, resolved);
+                    return pts;
+                }
+
+                function renderNumberRowGen(label, prono, reel_val, maxPts) {
+                    const pronoStr = prono != null ? String(prono) : '—';
+                    const reelStr = reel_val != null ? String(reel_val) : '⏳';
+                    const resolved = reel_val != null;
+                    let pts = 0;
+                    if (resolved && prono != null && prono === reel_val) pts = maxPts;
+                    html += renderRow(label, pronoStr, reelStr, pts, resolved);
+                    return pts;
+                }
+
+                // 1) Championne (5 pts)
+                totalPoints += renderTextRowGen('Équipe championne 🏆', gen.equipe_championne, reel?.equipe_championne, 5);
+
+                // 2) Finaliste (5 pts)
+                totalPoints += renderTextRowGen('Équipe finaliste', gen.equipe_finaliste, reel?.equipe_finaliste, 5);
+
+                // 3) Score finale (5 pts)
+                const finaleProno = gen.score_finale_a != null ? `${gen.score_finale_a} – ${gen.score_finale_b}` : '⏳ Pas encore saisi';
+                const finaleReel = reel?.score_finale_a != null ? `${reel.score_finale_a} – ${reel.score_finale_b}` : '⏳';
+                const finaleResolved = reel?.score_finale_a != null;
+                let finalePts = 0;
+                if (finaleResolved && gen.score_finale_a != null && gen.score_finale_a === reel.score_finale_a && gen.score_finale_b === reel.score_finale_b) finalePts = 5;
+                totalPoints += finalePts;
+                html += renderRow('Score finale', finaleProno, finaleReel, finalePts, finaleResolved);
+
+                // 4) Meilleur buteur tournoi (5 pts)
+                totalPoints += renderTextRowGen('Meilleur buteur tournoi', gen.meilleur_buteur_tournoi, reel?.meilleur_buteur_tournoi, 5);
+
+                // 5) Meilleur gardien (5 pts)
+                totalPoints += renderTextRowGen('Meilleur gardien', gen.meilleur_gardien, reel?.meilleur_gardien, 5);
+
+                // 6) Meilleur joueur (5 pts)
+                totalPoints += renderTextRowGen('Meilleur joueur', gen.meilleur_joueur, reel?.meilleur_joueur, 5);
+
+                // 7) Nb buts total tournoi (10 pts)
+                totalPoints += renderNumberRowGen('Nb buts total tournoi', gen.nb_buts_total_tournoi, reel?.nb_buts_total_tournoi, 10);
+
+                // 8) Match le + de buts (5 pts)
+                const wtfProno = gen.match_plus_buts_equipe_a ? `${gen.match_plus_buts_equipe_a} ${gen.match_plus_buts_score_a} – ${gen.match_plus_buts_score_b} ${gen.match_plus_buts_equipe_b}` : '—';
+                const wtfReel = reel?.match_plus_buts_equipe_a ? `${reel.match_plus_buts_equipe_a} ${reel.match_plus_buts_score_a} – ${reel.match_plus_buts_score_b} ${reel.match_plus_buts_equipe_b}` : '⏳';
+                const wtfResolved = reel?.match_plus_buts_equipe_a != null;
+                let wtfPts = 0;
+                if (wtfResolved && gen.match_plus_buts_equipe_a &&
+                    gen.match_plus_buts_equipe_a.toLowerCase().trim() === reel.match_plus_buts_equipe_a.toLowerCase().trim() &&
+                    gen.match_plus_buts_equipe_b.toLowerCase().trim() === reel.match_plus_buts_equipe_b.toLowerCase().trim() &&
+                    gen.match_plus_buts_score_a === reel.match_plus_buts_score_a &&
+                    gen.match_plus_buts_score_b === reel.match_plus_buts_score_b) {
+                    wtfPts = 5;
+                }
+                totalPoints += wtfPts;
+                html += renderRow('🤪 Match le + de buts', wtfProno, wtfReel, wtfPts, wtfResolved);
+
+                // 9) Nb CSC (10 pts)
+                totalPoints += renderNumberRowGen('🤪 Nb de CSC', gen.nb_csc_tournoi, reel?.nb_csc_tournoi, 10);
+
+                html += '</tbody></table></div></div>';
             }
 
-            // Date de soumission
+            // ========== RÉSUMÉ POINTS ==========
+            const summaryHtml = `
+                <div class="card" style="text-align:center;">
+                    <div class="card-title" style="justify-content:center;">📊 Score Partie 1 – Le Grand Prono</div>
+                    <div style="font-size:3rem; font-weight:800; color:var(--gold); margin:16px 0;">${totalPoints} pts</div>
+                    <p class="text-gray">Les pronos en attente (⏳) rapporteront des points quand les résultats seront connus</p>
+                </div>`;
+
+	// Date de soumission
             const submitDate = fr ? new Date(fr.submitted_at) : (gen ? new Date(gen.submitted_at) : null);
+            let dateHtml = '';
             if (submitDate) {
                 const dateStr = submitDate.toLocaleDateString('fr-FR', {
                     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                     hour: '2-digit', minute: '2-digit'
                 });
-                html += `<p class="text-gray text-center mt-16">📅 Soumis le ${dateStr}</p>`;
+                dateHtml = `<p class="text-gray text-center mt-16">📅 Soumis le ${dateStr}</p>`;
             }
 
-            container.innerHTML = html;
+            container.innerHTML = summaryHtml + html + dateHtml;
         }
 
         function formatElimination(stade) {
@@ -412,6 +513,28 @@
                 'champion': '🏆 Championne du monde !'
             };
             return labels[stade] || stade;
+        }
+
+        function renderRow(label, prono, reel, pts, resolved) {
+            let ptsDisplay = '';
+            let ptsClass = '';
+
+            if (!resolved) {
+                ptsDisplay = '<span class="badge badge-points">⏳</span>';
+            } else if (pts > 0) {
+                ptsDisplay = `<span class="text-green" style="font-weight:700;">+${pts} pts</span>`;
+                ptsClass = '';
+            } else {
+                ptsDisplay = '<span class="text-red" style="font-weight:700;">0 pt</span>';
+            }
+
+            return `
+                <tr>
+                    <td class="text-gray">${label}</td>
+                    <td><strong>${prono}</strong></td>
+                    <td>${reel}</td>
+                    <td>${ptsDisplay}</td>
+                </tr>`;
         }
 
         checkExisting();
