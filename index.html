@@ -199,6 +199,7 @@
 
         // --- Variables ---
         let currentSort = 'total';
+        const SUSPENSE_MODE = true; 
 
         // --- Init ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -278,6 +279,22 @@
 
         // --- Classement ---
         async function loadClassement() {
+            if (SUSPENSE_MODE) {
+                document.getElementById('classement-body').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center" style="padding:40px;">
+                            <div style="font-size:3rem; margin-bottom:16px;">🏆🔒</div>
+                            <div style="font-size:1.2rem; font-weight:700; color:var(--gold); margin-bottom:8px;">
+                                Classement final en préparation...
+                            </div>
+                            <div class="text-gray">
+                                Les résultats seront dévoilés après la finale du 19 juillet !
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
             const { data, error } = await supabase
                 .from('classement')
                 .select('*');
