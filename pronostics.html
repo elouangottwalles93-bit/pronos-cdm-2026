@@ -379,8 +379,23 @@
                 totalPoints += renderTextRow('Plus beau but FR', fr.auteur_plus_beau_but, reel?.auteur_plus_beau_but_fr, 5);
 
                 // 10) Plus de cartons (5 pts)
-                totalPoints += renderTextRow('🤪 Plus de cartons', fr.joueur_plus_cartons, reel?.joueur_plus_cartons_fr, 5);
-
+                (function() {
+                    const prono = fr.joueur_plus_cartons;
+                    const reelVal = reel?.joueur_plus_cartons_fr;
+                    const pronoStr = prono || '—';
+                    const reelStr = reelVal || '⏳';
+                    const resolved = reelVal != null;
+                    let pts = 0;
+                    if (resolved && prono && reelVal) {
+                        const acceptedNames = reelVal.toLowerCase().split(',').map(n => n.trim());
+                        if (acceptedNames.includes(prono.toLowerCase().trim())) {
+                            pts = 5;
+                        }
+                    }
+                    html += renderRow('🤪 Plus de cartons', pronoStr, reelStr, pts, resolved);
+                    totalPoints += pts;
+                })();
+				
                 // Helper inline pour les lignes texte et nombre
                 function renderTextRow(label, prono, reel_val, maxPts) {
                     const pronoStr = prono || '—';
